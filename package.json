@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "koa": "^2.7.0",
+    "oauth": "^0.9.15",
+    "telegraf": "^3.30.1",
+    "twitter": "^1.7.1"
+  }
+}
