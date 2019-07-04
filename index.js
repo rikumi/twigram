@@ -271,8 +271,7 @@ function buildTweet(tweet) {
 
     if (quoted) {
         try {
-            let that = buildTweet(quoted);
-            console.log('debug', { quoted });
+            let that = buildTweet(quoted)
             if (!mediaType) {
                 mediaType = that.mediaType;
                 mediaUrls = that.mediaUrls;
