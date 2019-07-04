@@ -3,5 +3,6 @@
     "twitterConsumerKey": "",
     "twitterConsumerSecret": "",
     "twitterAccessToken": "",
-    "twitterAccessSecret": ""
+    "twitterAccessSecret": "",
+    "serverIp": ""
 }

@@ -3,3 +3,5 @@
 node_modules
 config.json
 yarn.lock
+nohup.out
+session.json
