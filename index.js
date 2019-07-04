@@ -76,6 +76,10 @@ process.on('SIGINT', () => {
  * Authentication - Step 1
  */
 bot.start((ctx) => {
+    if (sessions[ctx.message.chat.id]) {
+        ctx.reply('You have already started.');
+        return;
+    }
     oa.getOAuthRequestToken((error, key, secret) => {
         if (error) {
             console.log(error);
