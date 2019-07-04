@@ -123,7 +123,7 @@ function update(chatId) {
     let session = sessions[chatId];
     const options = {};
     if (!session.lastId) {
-        options.count = 10;
+        options.count = 20;
     } else {
         options.since_id = session.lastId;
     }
@@ -134,11 +134,21 @@ function update(chatId) {
             console.log(`Error from @${ session.username }:`, error);
         } else {
             tweets = tweets.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-            for (let tweet of tweets) {
-                await sendTweet(chatId, tweet);
-                session.lastId = tweet.id_str;
+            try {
+                for (let tweet of tweets) {
+                    await sendTweet(chatId, tweet);
+                    session.lastId = tweet.id_str;
+                }
+                console.log(`Updated ${ tweets.length } tweet(s) for @${ session.username }.`);
+            } catch (e) {
+                if (e && e.code === 403) {
+                    clearInterval(session.task);
+                    delete sessions[chatId];
+                    console.log(`User has left: @${ session.username }.`);
+                } else {
+                    console.error(`Error from @${ session.username }:`, e)
+                }
             }
-            console.log(`Updated ${ tweets.length } tweet(s) for @${ session.username }.`);
         }
     });
 }
@@ -219,15 +229,21 @@ function buildTweet(tweet) {
                 replaceText = `<a href="${ expanded_url }">${ display_url }</a> `;
                 break;
             case 'media':
-                let { media_url_https: url } = entity;
+                if (mediaType === 'video' || mediaType === 'animated_gif') {
+                    let sources = entity.video_info.variants
+                        .map(k => { k.bitrate = k.bitrate || 0; return k })
+                        .sort((a, b) => b.bitrate - a.bitrate);
+                    mediaUrls.push(sources[Math.floor(sources.length / 2)]).url;
+                } else {
+                    mediaUrls.push(entity.media_url_https);
+                }
                 replaceText = '';
-                mediaUrls.push(url);
                 break;
         }
 
         if (processedUpTo >= to) {
             let arr = text.split('');
-            arr.splice(from, to - from, replaceText);
+            arr.splice(from, to - from + 1, replaceText);
             text = arr.join('');
             processedUpTo = from;
         }
