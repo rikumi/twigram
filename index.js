@@ -1,6 +1,7 @@
 const Twitter = require('twitter');
 const Telegraf = require('telegraf');
 const { OAuth } = require('oauth');
+const emoji = require('emoji-aware');
 const Koa = require('koa');
 const fs = require('fs');
 const path = require('path');
@@ -197,7 +198,7 @@ async function sendTweet(chatId, tweet) {
 }
 
 function buildTweet(tweet) {
-    let { user, text, entities, extended_entities = {} } = tweet;
+    let { user, text, entities, extended_entities = {}, retweeted_status: retweeted, quoted_status: quoted } = tweet;
     let { hashtags, user_mentions: mentions, urls } = entities;
     let { media = [] } = extended_entities;
     let mediaType = media[0] && media[0].type;
@@ -226,7 +227,11 @@ function buildTweet(tweet) {
                 break;
             case 'url':
                 let { expanded_url, display_url } = entity;
-                replaceText = `<a href="${ expanded_url }">${ display_url }</a> `;
+                if (quoted && new RegExp(quoted.id_str + '/?$').test(expanded_url)) {
+                    replaceText = '';
+                } else {
+                    replaceText = `<a href="${ expanded_url }">${ display_url }</a> `;
+                }
                 break;
             case 'media':
                 if (mediaType === 'video' || mediaType === 'animated_gif') {
@@ -242,7 +247,7 @@ function buildTweet(tweet) {
         }
 
         if (processedUpTo >= to) {
-            let arr = text.split('');
+            let arr = emoji.split(text);
             arr.splice(from, to - from + 1, replaceText);
             text = arr.join('');
             processedUpTo = from;
@@ -255,10 +260,33 @@ function buildTweet(tweet) {
         text += ` [${ /\w+$/.exec(mediaType)[0] }]`;
     }
 
+    if (retweeted) {
+        try {
+            let that = buildTweet(retweeted);
+            mediaType = that.mediaType;
+            mediaUrls = that.mediaUrls;
+            text = 'RT\n' + that.text;
+        } catch (e) {}
+    }
+
+    if (quoted) {
+        try {
+            let that = buildTweet(quoted);
+            console.log('debug', { quoted });
+            if (!mediaType) {
+                mediaType = that.mediaType;
+                mediaUrls = that.mediaUrls;
+            }
+            text += '\n' + that.text;
+        } catch (e) {}
+    }
+
     return {
         mediaType,
         mediaUrls,
-        text: `<a href="https://twitter.com/${ tweet.user.screen_name }/status/${ tweet.id_str }">${ tweet.in_reply_to_status_id_str ? '💬' : '🔗' }${ user.name }</a>: ${ text }`
+        text: `<a href="https://twitter.com/${ tweet.user.screen_name }/status/${ tweet.id_str }">${
+            retweeted || quoted ? '♻️' : (tweet.in_reply_to_status_id_str ? '💬' : '🐦')
+        } ${ user.name }</a>: ${ text }`
     }
 }
 

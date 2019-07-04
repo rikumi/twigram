@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "emoji-aware": "^3.0.4",
     "koa": "^2.7.0",
     "oauth": "^0.9.15",
     "telegraf": "^3.30.1",
